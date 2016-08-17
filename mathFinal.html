@@ -1,0 +1,348 @@
+﻿<!doctype html>
+<meta charset="utf-8">
+<title>Math Final Exam</title>
+<style>
+    body {
+        background-image: url(images/desk.png);
+        margin-left: 400px;
+        margin-top: 50px;
+        background-repeat: no-repeat;
+    }
+
+    .AVerdanaYellow {
+        font-family: Verdana, sans-serif;
+        font-size: 14pt;
+        line-height: 13pt;
+        font-style: normal;
+        color: #ffff00;
+        text-align: left;
+    }
+
+    #CLOCK {
+        position: absolute;
+        bottom: 0;
+        right: 200px;
+    }
+    
+</style>
+
+
+<body onLoad="createGame();">
+    <div id="game">
+        <div id="CLOCK">
+            <img src="images/dg0.gif" name="mn1"><img src="images/dg0.gif" name="mn2"><img src="images/dgc.gif"><img src="images/dg0.gif" name="se1"><img src="images/dg0.gif" name="se2">
+        </div>
+        <canvas id="canvas" width="1100" height="400">
+            Your browser doesn't support the HTML5 element canvas.
+        </canvas>
+    </div>
+</body>
+
+
+<script>
+
+    dg = new Array();
+    dg[0] = new Image();
+    dg[0].src = "images/dg0.gif";
+    dg[1] = new Image();
+    dg[1].src = "images/dg1.gif";
+    dg[2] = new Image();
+    dg[2].src = "images/dg2.gif";
+    dg[3] = new Image();
+    dg[3].src = "images/dg3.gif";
+    dg[4] = new Image();
+    dg[4].src = "images/dg4.gif";
+    dg[5] = new Image();
+    dg[5].src = "images/dg5.gif";
+    dg[6] = new Image();
+    dg[6].src = "images/dg6.gif";
+    dg[7] = new Image();
+    dg[7].src = "images/dg7.gif";
+    dg[8] = new Image();
+    dg[8].src = "images/dg8.gif";
+    dg[9] = new Image();
+    dg[9].src = "images/dg9.gif";
+    var seconds = 0;
+    var min = 0;
+    var context;
+    var firstPick = true;
+    var firstCard = -1;
+    var secondCard;
+    var backColor = "rgb(0,128,0)";
+    var tableColor = "#d28b20"; //same color as green table
+    var textColor = "rgb(255,255,0)";
+    var cardNums = ["images/1.png", "images/2.png", "images/3.png", "images/4.png", "images/5.png", "images/6.png", "images/7.png", "images/8.png", "images/9.png", "images/10.png", "images/11.png", "images/12.png", "images/13.png", "images/14.png"];
+    var cardBacks = preloadImages(cardNums);
+    var backCount = 0;
+    var deck = [];
+    var firstsx = 0;
+    var firstsy = 50;
+    var margin = 20;
+    var cardwidth = 100;
+    var cardheight = 120;
+    var tid;
+    var matched;
+    var starttime;
+    var count = 0;
+    var nonMatch = 0;
+    var picturePairs = [
+        ["images/5p12.png", "images/17sol.png"],
+        ["images/4x5.png", "images/20sol.png"],
+        ["images/20d4.png", "images/5sol.png"],
+        ["images/24p13.png", "images/37sol.png"],
+        ["images/4x3.png", "images/12sol.png"],
+        ["images/7p9.png", "images/16sol.png"],
+        ["images/17-8.png", "images/9sol.png"],
+        ["images/14-8.png", "images/6sol.png"],
+        ["images/16d4.png", "images/4sol.png"],
+        ["images/28d4.png", "images/7sol.png"],
+        ["images/23-8.png", "images/15sol.png"],
+        ["images/4x6.png", "images/24sol.png"]
+    ];
+
+    function preloadImages(backArray) {
+        var returnArray = [];
+        for (var i = 0; i < backArray.length; i++) {
+            returnArray[i] = new Image();
+            returnArray[i].src = backArray[i];
+        }
+        return returnArray;
+    }
+
+    function dotime() {
+        seconds++;
+        if (seconds == 60) {
+            min++
+            seconds = 0;
+        }
+
+        document.mn1.src = getSrc(min, 10);
+        document.mn2.src = getSrc(min, 1);
+        document.se1.src = getSrc(seconds, 10);
+        document.se2.src = getSrc(seconds, 1);
+    }
+
+    function getSrc(digit, index) {
+        return dg[(Math.floor(digit / index) % 10)].src;
+    }
+
+    // deck holds card info:  location and dimensions, picture source,
+    // and identifying info is set using the 2-d array in the Matrix function
+    function Card(sx, sy, swidth, sheight, img, info, back) {
+        this.sx = sx;
+        this.sy = sy;
+        this.swidth = swidth;
+        this.sheight = sheight;
+        this.info = info;
+        this.img = img;
+        this.backNum = back;
+        this.draw = replaceRect;
+    }
+
+    //generate 6 pack of cards on the table
+    function Matrix() {
+        var i;
+        var firstCard;
+        var secondCard;
+        var firstPicture;
+        var secondPicture;
+        var cx = firstsx;
+        var cy = firstsy;
+        var backNum = 0;
+        var usedImages = [-1, -1, -1, -1, -1, -1, -1];
+        for (i = 0; i < 7; i++) {
+            var x = 0;
+            var isIn = true;
+            while (isIn) {
+                x = Math.floor(Math.random() * 12.0);
+                for (var k = 0; k < usedImages.length; k++) {
+                    if (x == usedImages[k]) {
+                        isIn = true;
+                        break;
+                    }
+                    else {
+                        isIn = false;
+                    }
+                }
+            }
+            usedImages[i] = x;
+            firstPicture = new Image();
+            firstPicture.src = picturePairs[x][0];
+            firstCard = new Card(cx, cy, cardwidth, cardheight, firstPicture, x, backNum++);
+            deck.push(firstCard);
+            secondPicture = new Image();
+            secondPicture.src = picturePairs[x][1];
+            secondCard = new Card(cx, cy + cardheight + margin, cardwidth, cardheight, secondPicture, x, backNum++);
+            deck.push(secondCard);
+            cx = cx + cardwidth + margin;
+            firstCard.draw();
+            secondCard.draw();
+        }
+
+    }
+
+    function randomizeCards() {
+        //resembles shuffling cards when playing the game of concentration
+        //swaps the changing information: the image and the info indicating a match
+        var a;
+        var b;
+        var holderInfo;
+        var holderImage;
+        var declen = deck.length
+        var nt;
+        for (nt = 0; nt < 3 * declen; nt++) {  //do the swap 3 times deck.length times
+            a = Math.floor(Math.random() * declen);
+            b = Math.floor(Math.random() * declen);
+            holderInfo = deck[a].info;
+            holderImage = deck[a].img;
+            deck[a].info = deck[b].info;
+            deck[a].img = deck[b].img;
+            deck[b].info = holderInfo;
+            deck[b].img = holderImage;
+        }
+    }
+
+
+    function replaceRect() {
+        context.drawImage(cardBacks[this.backNum], this.sx, this.sy, this.swidth, this.sheight);
+    }
+
+
+    function makeMatch(ev) {
+        var out;
+        var mx;
+        var my;
+        var firstChoice;
+        var secondChoice;
+        if (ev.layerX || ev.layerX == 0) { // Firefox
+            mx = ev.layerX;
+            my = ev.layerY;
+        } else if (ev.offsetX || ev.offsetX == 0) { // Opera
+            mx = ev.offsetX;
+            my = ev.offsetY;
+        }
+        var i;
+        for (i = 0; i < deck.length; i++) {
+            var card = deck[i];
+            if (card.sx >= 0)  //this is the way to avoid checking for clicking on this space
+                if ((mx > card.sx) && (mx < card.sx + card.swidth) && (my > card.sy) && (my < card.sy + card.sheight)) {
+                    //check that this isn't clicking on first card
+                    if ((firstPick) || (i != firstCard)) {
+                        break;
+                    }
+                }
+        }
+        if (i < deck.length) {  //clicked on a card
+            if (firstPick) {
+                firstCard = i;
+                firstPick = false;
+                context.drawImage(card.img, card.sx, card.sy, card.swidth, card.sheight);
+            }
+            else {
+                secondCard = i;
+                context.drawImage(card.img, card.sx, card.sy, card.swidth, card.sheight);
+                //
+                if (card.info == deck[firstCard].info) {
+                    matched = true;
+                    count++;
+                    context.fillStyle = tableColor;
+                    context.fillRect(500, 0, 300, 30);
+                    context.fillStyle = textColor;
+                    // replaced line
+                    context.fillText("*", 220 + count * 8, 350);
+                    if (count >= .5 * deck.length) {
+                        var now = new Date();
+                        var nt = Number(now.getTime());
+                        var seconds = Math.floor(.5 + (nt - starttime) / 1000);
+
+                        context.fillStyle = tableColor;
+                        context.fillRect(deck[secondCard].sx, deck[secondCard].sy, deck[secondCard].swidth, deck[secondCard].sheight);
+                        context.fillRect(deck[firstCard].sx, deck[firstCard].sy, deck[firstCard].swidth, deck[firstCard].sheight);
+                        deck[secondCard].sx = -1;
+                        deck[firstCard].sx = -1;
+                            
+                        context.fillStyle = textColor;
+                        out = "You finished in " + String(seconds) + " secs.";
+                        context.fillText("You had " + nonMatch + " non-matches", 290, 380);
+                        if (nonMatch >= 15) {
+                            context.fillText("You failed your final! :( ", 780, 260);
+                            window.localStorage.setItem("pf1", 1);
+                        }
+                        else {
+                            context.fillText("Congratulations! You passed! ", 780, 260);
+                            window.localStorage.setItem("pf1", 2);
+                        }
+                        context.fillText(out, 365, 30);
+                        setTimeout(window.close, 2000);
+                        return;
+                    }
+
+                }
+                else {
+                    matched = false;
+                    
+                }
+                firstPick = true;
+                tid = setTimeout(cardRevert, 1000);
+            }
+        }
+    }
+
+    function cardRevert() {
+        context.fillStyle = tableColor;
+        context.fillRect(0, 0, 1000, 50);
+
+        var card;
+        if (!matched) {
+            nonMatch++;
+            context.fillStyle = textColor;
+            context.fillText("*", 765 + nonMatch * 8, 350);
+            deck[firstCard].draw();
+            deck[secondCard].draw();
+            context.fillStyle = tableColor;
+            context.fillRect(500, 0, 300, 30);
+            context.fillStyle = textColor;
+            var rand = Math.floor(Math.random() * 5);
+            if (rand == 0) {
+                context.fillText("That wasn't the right answer, dummy!", 500, 20);
+            }
+            else if (rand == 1) {
+                context.fillText("You're not too good at math, are you?", 500, 20);
+            }
+            else if (rand == 2) {
+                context.fillText("Do you even have a brain?", 500, 20);
+            }
+            else if (rand == 3) {
+                context.fillText("How can you not remember?", 500, 20);
+            }
+            else if (rand == 4) {
+                context.fillText("I recommend finding a new major.", 500, 20);
+            }
+        }
+        else {
+            context.fillStyle = tableColor;
+            context.fillRect(deck[secondCard].sx - 1, deck[secondCard].sy - 1, deck[secondCard].swidth + 5, deck[secondCard].sheight + 5);
+            context.fillRect(deck[firstCard].sx - 1, deck[firstCard].sy - 1, deck[firstCard].swidth + 5, deck[firstCard].sheight + 5);
+            deck[secondCard].sx = -1;
+            deck[firstCard].sx = -1;
+        }
+    }
+
+    function createGame() {
+        dotime();
+        setInterval(dotime, 1000);
+        context = document.getElementById('canvas').getContext('2d');
+        canvas1 = document.getElementById('canvas');
+        canvas1.addEventListener('click', makeMatch, false);
+        Matrix();
+        randomizeCards();
+        context.font = "14pt sans-serif";
+        context.fillStyle = textColor;
+        context.fillText("Match the math problem with the answer. Complete with fewer than 15 non-matches to pass.", 30, 30);
+        context.fillText("Number of matches so far: ", 0, 350);
+        context.fillText("Number of non-matches so far: ", 500, 350);
+        starttime = new Date();
+        starttime = Number(starttime.getTime());
+    }
+
+</script>

@@ -1,0 +1,644 @@
+﻿<!doctype html>
+<meta charset="utf-8">
+<title>Students & Finals</title>
+
+<style>
+    body {
+        background-color: brown;
+    }
+
+    #title {
+        width: 100%;
+       margin: auto;
+        padding: 0;
+        text-align: center;
+        font-size: 30px;
+    }
+    #ocean {
+        position: relative;
+        width: 1280px;
+        height: 896px;
+        background-image: url(images/map.png);
+        background-repeat: no-repeat;
+    }
+
+    .cell {
+        display: block;
+        position: absolute;
+        width: 128px;
+        height: 128px;
+    }
+
+    #game {
+        width: 1140px;
+        height: 1140px;
+        margin: auto;
+        zoom: 50%;
+    }
+    #output {
+        width: 100%;
+        font-size: 30px;
+        text-align: center;
+        margin-left: 50px;
+    }
+    #cetner {
+        margin: auto;
+    }
+
+</style>
+
+<section id="game">
+    <h1 id="title">LaskowskiGames Presents</h1>
+    <p id="title"><img src="images/title.png" alt="Students & Finals"></p>
+    <div id="ocean"></div>
+    <div id="center">
+        <p id="output"></p>
+    </div>
+</section>
+
+<script>
+    // Disable scrolling of window with arrow keys
+    window.addEventListener("keydown", function (e) {
+        // space and arrow keys
+        if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+            e.preventDefault();
+        }
+    }, false);
+
+    //Get a reference to the ocean and output
+    var ocean = document.querySelector("#ocean");
+    var output = document.querySelector("#output");
+
+    //Map code
+    var water = 0;
+    var testMath = 1;
+    var testJavaScript = 2;
+    var homePort = 3;
+    var student = 4;
+    var girl = 5;
+    var car = 8;
+    window.localStorage.setItem("pf1", 0);
+    window.localStorage.setItem("pf2", 0);
+
+    //Add a keyboard listener
+    window.addEventListener("keydown", keydownHandler, false);
+    //The game map
+    var map = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 3],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 2, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+
+    //The game objects map
+    var gameObjects =
+    [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [4, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+
+    function randomizeTraps() {
+        var randomRow1 = Math.floor(Math.random() * 7);
+        var randomCol1 = Math.floor(Math.random() * 10);
+        while (randomRow1 == 0 || randomRow1 == 1 || randomRow1 == 2) {
+            randomRow1 = Math.floor(Math.random() * 7);
+        }
+        while (randomCol1 == 0 || randomCol1 == 1 || randomCol1 == 2) {
+            randomCol1 = Math.floor(Math.random() * 10);
+        }
+        gameObjects[randomRow1][randomCol1] = girl;
+
+        var randomRow2 = Math.floor(Math.random() * 7);
+        var randomCol2 = Math.floor(Math.random() * 10);
+        while (randomRow1 == 0 || randomRow1 == 1 || randomRow1 == 2) {
+            randomRow1 = Math.floor(Math.random() * 7);
+        }
+        while (randomCol1 == 0 || randomCol1 == 1 || randomCol1 == 2) {
+            randomCol1 = Math.floor(Math.random() * 10);
+        }
+        while (randomCol1 == randomCol2 && randomRow1 == randomRow2) {
+            randomCol2 = Math.floor(Math.random() * 10);
+            randomRow2 = Math.floor(Math.random() * 7);
+        }
+
+        gameObjects[randomRow2][randomCol2] = car;
+    }
+
+    randomizeTraps();
+
+
+
+    //The size of each cell
+    var size = 128;
+
+    //The number of rows and columns
+    var rows = map.length;
+    var columns = map[0].length;
+
+    //Find the car's and girl's start positions
+    var studentRow;
+    var studentColumn;
+    var girlRow;
+    var girlColumn;
+    var carRow;
+    var carColumn;
+
+    for (var row = 0; row < rows; row++) {
+        for (var column = 0; column < columns; column++) {
+            if (gameObjects[row][column] === student) {
+                studentRow = row;
+                studentColumn = column;
+            }
+            if (gameObjects[row][column] === girl) {
+                girlRow = row;
+                girlColumn = column;
+            }
+            if (gameObjects[row][column] === car) {
+                carRow = row;
+                carColumn = column;
+            }
+        }
+    }
+
+    //Arrow key codes
+    var UP = 38;
+    var DOWN = 40;
+    var RIGHT = 39;
+    var LEFT = 37;
+
+    var gameMessage = "Use arrow keys to get to your finals while avoiding the girl and traffic jam so you don't get distracted, then go home. Reload page to re-play.";
+
+    render();
+
+    // check if girl is close
+
+    function checkGirlClose() {
+        if (studentRow == 0) {
+            if (studentColumn == 0) {
+                if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow + 1][studentColumn] === girl || gameObjects[studentRow][studentColumn + 1] === girl) {
+                    gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                    endGame();
+                }
+            }
+            else if (studentColumn == 9) {
+                if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow + 1][studentColumn] === girl || gameObjects[studentRow][studentColumn - 1] === girl) {
+                    gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                    endGame();
+                }
+            }
+            else {
+                if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow + 1][studentColumn] === girl || gameObjects[studentRow][studentColumn + 1] === girl || gameObjects[studentRow][studentColumn - 1] === girl) {
+                    gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                    endGame();
+                }
+            }
+        }
+        else if (studentRow == 6) {
+            if (studentColumn == 0) {
+                if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow - 1][studentColumn] === girl || gameObjects[studentRow][studentColumn + 1] === girl) {
+                    gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                    endGame();
+                }
+            }
+            else if (studentColumn == 9) {
+                if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow - 1][studentColumn] === girl || gameObjects[studentRow][studentColumn - 1] === girl) {
+                    gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                    endGame();
+                }
+            }
+            else {
+                if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow - 1][studentColumn] === girl || gameObjects[studentRow][studentColumn + 1] === girl || gameObjects[studentRow][studentColumn - 1] === girl) {
+                    gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                    endGame();
+                }
+            }
+        }
+        else if (studentColumn == 0) {
+            if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow - 1][studentColumn] === girl || gameObjects[studentRow][studentColumn + 1] === girl || gameObjects[studentRow + 1][studentColumn] === girl) {
+                gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                endGame();
+            }
+        }
+        else if (studentColumn == 9) {
+            if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow - 1][studentColumn] === girl || gameObjects[studentRow][studentColumn - 1] === girl || gameObjects[studentRow + 1][studentColumn] === girl) {
+                gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                endGame();
+            }
+        }
+        else {
+            if (gameObjects[studentRow][studentColumn] === girl || gameObjects[studentRow - 1][studentColumn] === girl || gameObjects[studentRow][studentColumn - 1] === girl || gameObjects[studentRow + 1][studentColumn] === girl || gameObjects[studentRow][studentColumn + 1]) {
+                gameMessage = "Your have been distracted by a hot girl and missed you final!";
+                endGame();
+            }
+        }
+    }
+    // check if car is close
+
+    function checkCarClose() {
+        if (studentRow == 0) {
+            if (studentColumn == 0) {
+                if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow + 1][studentColumn] === car || gameObjects[studentRow][studentColumn + 1] === car) {
+                    gameMessage = "You have been caught in a traffic jam and missed you final!";
+                    endGame();
+                }
+            }
+            else if (studentColumn == 9) {
+                if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow + 1][studentColumn] === car || gameObjects[studentRow][studentColumn - 1] === car) {
+                    gameMessage = "You have been caught in a traffic jam and missed you final!";
+                    endGame();
+                }
+            }
+            else {
+                if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow + 1][studentColumn] === car || gameObjects[studentRow][studentColumn + 1] === car || gameObjects[studentRow][studentColumn - 1] === car) {
+                    gameMessage = "You have been caught in a traffic jam and missed you final!";
+                    endGame();
+                }
+            }
+        }
+        else if (studentRow == 6) {
+            if (studentColumn == 0) {
+                if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow - 1][studentColumn] === car || gameObjects[studentRow][studentColumn + 1] === car) {
+                    gameMessage = "You have been caught in a traffic jam and missed you final!";
+                    endGame();
+                }
+            }
+            else if (studentColumn == 9) {
+                if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow - 1][studentColumn] === car || gameObjects[studentRow][studentColumn - 1] === car) {
+                    gameMessage = "You have been caught in a traffic jam and missed you final!";
+                    endGame();
+                }
+            }
+            else {
+                if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow - 1][studentColumn] === car || gameObjects[studentRow][studentColumn + 1] === car || gameObjects[studentRow][studentColumn - 1] === car) {
+                    gameMessage = "You have been caught in a traffic jam and missed you final!";
+                    endGame();
+                }
+            }
+        }
+        else if (studentColumn == 0) {
+            if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow - 1][studentColumn] === car || gameObjects[studentRow][studentColumn + 1] === car || gameObjects[studentRow + 1][studentColumn] === car) {
+                gameMessage = "You have been caught in a traffic jam and missed you final!";
+                endGame();
+            }
+        }
+        else if (studentColumn == 9) {
+            if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow - 1][studentColumn] === car || gameObjects[studentRow][studentColumn - 1] === car || gameObjects[studentRow + 1][studentColumn] === car) {
+                gameMessage = "You have been caught in a traffic jam and missed you final!";
+                endGame();
+            }
+        }
+        else {
+            if (gameObjects[studentRow][studentColumn] === car || gameObjects[studentRow - 1][studentColumn] === car || gameObjects[studentRow][studentColumn - 1] === car || gameObjects[studentRow + 1][studentColumn] === car || gameObjects[studentRow][studentColumn + 1]) {
+                gameMessage = "You have been caught in a traffic jam and missed you final!";
+                endGame();
+            }
+        }
+    }
+
+    function keydownHandler(event) {
+        if (window.localStorage.getItem("pf1") != 0) {
+            if (window.localStorage.getItem("pf1") == 1) {
+                gameMessage = "You failed your math final. You lose :(";
+                endGame();
+            }
+            else {
+                gameMessage = "You passed your math final!";
+            }
+        }
+        if (window.localStorage.getItem("pf2") != 0) {
+            if (window.localStorage.getItem("pf2") == 1) {
+                gameMessage = "You failed your JavaScript final. You lose :(";
+                endGame();
+            }
+            else {
+                gameMessage = "You passed your programming final!";
+            }
+        }
+        switch (event.keyCode) {
+            case UP:
+                if (studentRow > 0) {
+                    //Clear the student's current cell
+                    gameObjects[studentRow][studentColumn] = 0;
+
+                    //Subract 1 from the student's row
+                    studentRow--;
+
+                    //Apply the student's new updated position to the array
+                    gameObjects[studentRow][studentColumn] = student;
+                }
+                break;
+
+            case DOWN:
+                if (studentRow < rows - 1) {
+                    gameObjects[studentRow][studentColumn] = 0;
+                    studentRow++;
+                    gameObjects[studentRow][studentColumn] = student;
+                }
+                break;
+
+            case LEFT:
+                if (studentColumn > 0) {
+                    gameObjects[studentRow][studentColumn] = 0;
+                    studentColumn--;
+                    gameObjects[studentRow][studentColumn] = student;
+                }
+                break;
+
+            case RIGHT:
+                if (studentColumn < columns - 1) {
+                    gameObjects[studentRow][studentColumn] = 0;
+                    studentColumn++;
+                    gameObjects[studentRow][studentColumn] = student;
+                }
+                break;
+        }
+
+        //find out what kind of cell the ship is on
+        switch (map[studentRow][studentColumn]) {
+
+            case testMath:
+                testM();
+                break;
+
+            case testJavaScript:
+                testJS();
+                break;
+
+            case homePort:
+                endGame();
+                break;
+        }
+
+        //Move the girl
+        movegirl();
+
+        // Move car
+        movecar();
+
+        checkCarClose();
+
+        checkGirlClose();
+
+        //Render the game
+        render();
+    }
+
+    function movegirl() {
+        //An array to store the valid direction that
+        //the girl is allowed to move in
+        var validDirections = [];
+
+        //The final direction that the girl will move in
+        var direction = undefined;
+
+        //Find out what kinds of things are in the cells
+        //that surround the girl. If the cells contain water,
+        //push the corresponding direction into the validDirections array
+        if (girlRow > 0) {
+            var thingAbove = map[girlRow - 1][girlColumn];
+            if (thingAbove === water || thingAbove === student) {
+                validDirections.push(UP);
+            }
+        }
+        if (girlRow < rows - 1) {
+            var thingBelow = map[girlRow + 1][girlColumn];
+            if (thingBelow === water || thingAbove === student) {
+                validDirections.push(DOWN);
+            }
+        }
+        if (girlColumn > 0) {
+            var thingToTheLeft = map[girlRow][girlColumn - 1];
+            if (thingToTheLeft === water || thingAbove === student) {
+                validDirections.push(LEFT);
+            }
+        }
+        if (girlColumn < columns - 1) {
+            var thingToTheRight = map[girlRow][girlColumn + 1];
+            if (thingToTheRight === water || thingAbove === student) {
+                validDirections.push(RIGHT);
+            }
+        }
+
+        //The validDirections array now contains 0 to 4 directions that the
+        //contain water cells. Which of those directions will the girl
+        //choose to move in?
+
+        //If a valid direction was found, Randomly choose one of the
+        //possible directions and assign it to the direction variable
+        if (validDirections.length !== 0) {
+            var randomNumber = Math.floor(Math.random() * validDirections.length);
+            direction = validDirections[randomNumber];
+        }
+
+        //Move the girl in the chosen direction
+        switch (direction) {
+            case UP:
+                //Clear the girl's current cell
+                if (gameObjects[girlRow][girlColumn] != student) {
+                    gameObjects[girlRow][girlColumn] = 0;
+                }
+                //Subtract 1 from the girl's row
+                girlRow--;
+                //Apply the girl's new updated position to the array
+                gameObjects[girlRow][girlColumn] = girl;
+                break;
+
+            case DOWN:
+                if (gameObjects[girlRow][girlColumn] != student) {
+                    gameObjects[girlRow][girlColumn] = 0;
+                }
+                girlRow++;
+                gameObjects[girlRow][girlColumn] = girl;
+                break;
+
+            case LEFT:
+                if (gameObjects[girlRow][girlColumn] != student) {
+                    gameObjects[girlRow][girlColumn] = 0;
+                }
+                girlColumn--;
+                gameObjects[girlRow][girlColumn] = girl;
+                break;
+
+            case RIGHT:
+                if (gameObjects[girlRow][girlColumn] != student) {
+                    gameObjects[girlRow][girlColumn] = 0;
+                }
+                girlColumn++;
+                gameObjects[girlRow][girlColumn] = girl;
+        }
+    }
+
+    function movecar() {
+        //An array to store the valid direction that
+        //the girl is allowed to move in
+        var validDirections = [];
+
+        //The final direction that the girl will move in
+        var direction = undefined;
+
+        //Find out what kinds of things are in the cells
+        //that surround the girl. If the cells contain water,
+        //push the corresponding direction into the validDirections array
+        if (carRow > 0) {
+            var thingAbove = map[carRow - 1][carColumn];
+            if (thingAbove === water || thingAbove === student) {
+                validDirections.push(UP);
+            }
+        }
+        if (carRow < rows - 1) {
+            var thingBelow = map[carRow + 1][carColumn];
+            if (thingBelow === water || thingAbove === student) {
+                validDirections.push(DOWN);
+            }
+        }
+        if (carColumn > 0) {
+            var thingToTheLeft = map[carRow][carColumn - 1];
+            if (thingToTheLeft === water || thingAbove === student) {
+                validDirections.push(LEFT);
+            }
+        }
+        if (carColumn < columns - 1) {
+            var thingToTheRight = map[carRow][carColumn + 1];
+            if (thingToTheRight === water || thingAbove === student) {
+                validDirections.push(RIGHT);
+            }
+        }
+
+        //The validDirections array now contains 0 to 4 directions that the
+        //contain water cells. Which of those directions will the girl
+        //choose to move in?
+
+        //If a valid direction was found, Randomly choose one of the
+        //possible directions and assign it to the direction variable
+        if (validDirections.length !== 0) {
+            var randomNumber = Math.floor(Math.random() * validDirections.length);
+            direction = validDirections[randomNumber];
+        }
+
+        //Move the girl in the chosen direction
+        switch (direction) {
+            case UP:
+                //Clear the girl's current cell
+                if (gameObjects[carRow][carColumn] != student) {
+                    gameObjects[carRow][carColumn] = 0;
+                }
+                //Subtract 1 from the girl's row
+                carRow--;
+                //Apply the monster's new updated position to the array
+                gameObjects[carRow][carColumn] = car;
+                break;
+
+            case DOWN:
+                if (gameObjects[carRow][carColumn] != student) {
+                    gameObjects[carRow][carColumn] = 0;
+                }
+                carRow++;
+                gameObjects[carRow][carColumn] = car;
+                break;
+
+            case LEFT:
+                if (gameObjects[carRow][carColumn] != student) {
+                    gameObjects[carRow][carColumn] = 0;
+                }
+                carColumn--;
+                gameObjects[carRow][carColumn] = car;
+                break;
+
+            case RIGHT:
+                if (gameObjects[carRow][carColumn] != student) {
+                    gameObjects[carRow][carColumn] = 0;
+                }
+                carColumn++;
+                gameObjects[carRow][carColumn] = car;
+        }
+    }
+
+    function testM() {
+        window.open("mathFinal.html");
+    }
+
+    function testJS() {
+        window.open("javaScriptFinal.html");
+    }
+
+    function endGame() {
+        if (map[studentRow][studentColumn] === homePort && window.localStorage.getItem("pf1")== 2 && window.localStorage.getItem("pf2")== 2 ){
+            gameMessage = "You made it home and passed both your finals! You win!";
+        }
+        else if (map[studentRow][studentColumn] === homePort) {
+            gameMessage = "You went home without taking both your finals! You lose.";
+        }
+
+        //Remove the keyboard listener to end the game
+        window.removeEventListener("keydown", keydownHandler, false);
+    }
+
+    function render() {
+        //Clear the ocean of img cells
+        //from the previous turn
+
+        if (ocean.hasChildNodes()) {
+            for (var i = 0; i < rows * columns; i++) {
+                ocean.removeChild(ocean.firstChild);
+            }
+        }
+
+        //Render the game by looping through the map arrays
+        for (var row = 0; row < rows; row++) {
+            for (var column = 0; column < columns; column++) {
+                //Create a img tag called cell
+                var cell = document.createElement("img");
+
+                //Set its CSS class to "cell"
+                cell.setAttribute("class", "cell");
+
+                //Add the img tag to the <div id="ocean"> tag
+                ocean.appendChild(cell);
+
+                //Find the correct image for this map cell
+                switch (map[row][column]) {
+                    //case water:
+                        //cell.src = "images/water.png";
+                        //break;
+                    case testMath:
+                        cell.src = "images/test.png";
+                        break;
+                    case testJavaScript:
+                        cell.src = "images/test.png";
+                        break;
+                    case homePort:
+                        cell.src = "images/home.png";
+                        break;
+                }
+                //Add the ship and girl from the gameObjects array
+                switch (gameObjects[row][column]) {
+                    case student:
+                        cell.src = "images/boy.png";
+                        break;
+                    case girl:
+                        cell.src = "images/girl.png";
+                        break;
+                    case car:
+                        cell.src = "images/car.png";
+                }
+
+                //Position the cell
+                cell.style.top = row * size + "px";
+                cell.style.left = column * size + "px";
+
+            }
+
+            //Display the game message
+            output.innerHTML = gameMessage;
+
+        }
+    }
+</script>
